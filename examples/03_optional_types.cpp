@@ -63,8 +63,8 @@ int main()
             dataStruct.number,
             dataStruct.boolean,
             dataStruct.opt.data,
-            dataStruct.opt_checked.assigned,
-            dataStruct.opt_checked.data);
+            dataStruct.opt_checked.has_value(),
+            dataStruct.opt_checked.value());
 
     return 0;
 }

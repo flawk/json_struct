@@ -2327,11 +2327,27 @@ struct Nullable
   }
 
   T data;
-  T &operator()()
+  T &operator()() &noexcept
   {
     return data;
   }
-  const T &operator()() const
+  constexpr const T &operator()() const &noexcept
+  {
+    return data;
+  }
+  T &operator*() &noexcept
+  {
+    return data;
+  }
+  constexpr const T &operator*() const &noexcept
+  {
+    return data;
+  }
+  T &value() &noexcept
+  {
+    return data;
+  }
+  constexpr const T &value() const &noexcept
   {
     return data;
   }
@@ -2362,13 +2378,37 @@ struct NullableChecked
     return *this;
   }
 
-  T &operator()()
+  T &operator()() &noexcept
   {
     return data;
   }
-  const T &operator()() const
+  constexpr const T &operator()() const &noexcept
   {
     return data;
+  }
+  T &operator*() &noexcept
+  {
+    return data;
+  }
+  constexpr const T &operator*() const &noexcept
+  {
+    return data;
+  }
+  T &value() &noexcept
+  {
+    return data;
+  }
+  constexpr const T &value() const &noexcept
+  {
+    return data;
+  }
+  constexpr explicit operator bool() const noexcept
+  {
+    return null;
+  }
+  constexpr bool has_value() const noexcept
+  {
+    return null;
   }
   T data;
   bool null;
@@ -2397,11 +2437,27 @@ struct Optional
   }
 
   T data;
-  T &operator()()
+  T &operator()() &noexcept
   {
     return data;
   }
-  const T &operator()() const
+  constexpr const T &operator()() const &noexcept
+  {
+    return data;
+  }
+  T &operator*() &noexcept
+  {
+    return data;
+  }
+  constexpr const T &operator*() const &noexcept
+  {
+    return data;
+  }
+  T &value() &noexcept
+  {
+    return data;
+  }
+  constexpr const T &value() const &noexcept
   {
     return data;
   }
@@ -2432,17 +2488,47 @@ struct OptionalChecked
     assigned = true;
     return *this;
   }
+  OptionalChecked<T> &operator=(const T &&other)
+  {
+    data = std::move(other);
+    assigned = true;
+    return *this;
+  }
 
-  T &operator()()
+  T &operator()() &noexcept
   {
     return data;
   }
-  const T &operator()() const
+  constexpr const T &operator()() const &noexcept
   {
     return data;
+  }
+  T &operator*() &noexcept
+  {
+    return data;
+  }
+  constexpr const T &operator*() const &noexcept
+  {
+    return data;
+  }
+  T &value() &noexcept
+  {
+    return data;
+  }
+  constexpr const T &value() const &noexcept
+  {
+    return data;
+  }
+  constexpr explicit operator bool() const noexcept
+  {
+    return assigned;
+  }
+  constexpr bool has_value() const noexcept
+  {
+    return assigned;
   }
 #ifdef JS_STD_OPTIONAL
-  std::optional<T> opt() const {
+  operator std::optional<T>() const {
     return assigned ? std::optional<T>(data) : std::nullopt;
   }
 #endif
@@ -7338,12 +7424,12 @@ struct TypeHandler<Optional<T>>
 public:
   static inline Error to(Optional<T> &to_type, ParseContext &context)
   {
-    return TypeHandler<T>::to(to_type.data, context);
+    return TypeHandler<T>::to(to_type.value(), context);
   }
 
   static inline void from(const Optional<T> &opt, Token &token, Serializer &serializer)
   {
-    TypeHandler<T>::from(opt(), token, serializer);
+    TypeHandler<T>::from(*opt, token, serializer);
   }
 };
 
@@ -7355,13 +7441,13 @@ public:
   static inline Error to(OptionalChecked<T> &to_type, ParseContext &context)
   {
     to_type.assigned = true;
-    return TypeHandler<T>::to(to_type.data, context);
+    return TypeHandler<T>::to(to_type.value(), context);
   }
 
   static inline void from(const OptionalChecked<T> &opt, Token &token, Serializer &serializer)
   {
-    if (opt.assigned)
-      TypeHandler<T>::from(opt(), token, serializer);
+    if (opt)
+      TypeHandler<T>::from(*opt, token, serializer);
   }
 };
 
