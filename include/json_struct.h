@@ -2453,6 +2453,14 @@ struct Optional
   {
     return data;
   }
+  constexpr const T *operator->() const noexcept
+  {
+    return &data;
+  }
+  T *operator->() noexcept
+  {
+    return &data;
+  }
   T &value() &noexcept
   {
     return data;
@@ -2497,26 +2505,42 @@ struct OptionalChecked
 
   T &operator()() &noexcept
   {
+    assert(assigned);
     return data;
   }
   constexpr const T &operator()() const &noexcept
   {
+    assert(assigned);
     return data;
   }
   T &operator*() &noexcept
   {
+    assert(assigned);
     return data;
   }
   constexpr const T &operator*() const &noexcept
   {
+    assert(assigned);
     return data;
+  }
+  constexpr const T *operator->() const noexcept
+  {
+    assert(assigned);
+    return &data;
+  }
+  T *operator->() noexcept
+  {
+    assert(assigned);
+    return &data;
   }
   T &value() &noexcept
   {
+    assert(assigned);
     return data;
   }
   constexpr const T &value() const &noexcept
   {
+    assert(assigned);
     return data;
   }
   constexpr explicit operator bool() const noexcept
