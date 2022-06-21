@@ -3422,6 +3422,7 @@ struct SuperClassHandler<T, PAGE, 0>
 static bool skipArrayOrObject(ParseContext &context)
 {
   assert(context.error == Error::NoError);
+  Type start_type = context.token.value_type;
   Type end_type;
   if (context.token.value_type == Type::ObjectStart)
   {
@@ -3436,21 +3437,25 @@ static bool skipArrayOrObject(ParseContext &context)
     return false;
   }
 
-  while ((context.error == Error::NoError && context.token.value_type != end_type))
+  int depth = 1;
+  while (depth > 0)
   {
     context.nextToken();
     if (context.error != Error::NoError)
-      return false;
-    if (context.token.value_type == Type::ObjectStart || context.token.value_type == Type::ArrayStart)
     {
-      if (skipArrayOrObject(context))
-        context.nextToken();
-      if (context.error != Error::NoError)
-        return false;
+      return false;
+    }
+    if (context.token.value_type == start_type)
+    {
+      depth++;
+    }
+    else if (context.token.value_type == end_type)
+    {
+      depth--;
     }
   }
 
-  return true;
+  return context.token.value_type == end_type && context.error == Error::NoError;
 }
 } // namespace Internal
 
