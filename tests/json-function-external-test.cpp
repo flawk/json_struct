@@ -20,7 +20,7 @@
  * OF THIS SOFTWARE.
  */
 
-#include "json_struct.h"
+#include <json_struct/json_struct.h>
 
 #include "catch2/catch.hpp"
 
@@ -50,18 +50,24 @@ struct CallFunction
 {
   virtual void execute_one(const SimpleData &data)
   {
+    JS_UNUSED(data);
     called_one = true;
   }
 
   int execute_two(const double &data, JS::CallFunctionContext &context)
   {
+    JS_UNUSED(data);
+    JS_UNUSED(context);
     called_two = true;
     return 2;
   }
 
   void execute_three(const std::vector<double> &data, JS::CallFunctionContext &context)
   {
+    JS_UNUSED(context);
     for (auto x : data)
+      JS_UNUSED(x);
+
     called_three = true;
   }
   bool called_one = false;
@@ -70,7 +76,7 @@ struct CallFunction
 };
 } // namespace
 JS_FUNCTION_CONTAINER_EXTERNAL(CallFunction, JS_FUNCTION(execute_one), JS_FUNCTION(execute_two),
-                               JS_FUNCTION(execute_three));
+                               JS_FUNCTION(execute_three))
 
 namespace
 {
@@ -93,13 +99,14 @@ struct CallFunctionSuperSuper
 {
   void execute_one(const SimpleData &data)
   {
+    JS_UNUSED(data);
     called_one = true;
   }
 
   bool called_one = false;
 };
 } // namespace
-JS_FUNCTION_CONTAINER_EXTERNAL(CallFunctionSuperSuper, JS_FUNCTION(execute_one));
+JS_FUNCTION_CONTAINER_EXTERNAL(CallFunctionSuperSuper, JS_FUNCTION(execute_one))
 
 namespace
 {
@@ -107,13 +114,14 @@ struct CallFunctionSuper
 {
   void execute_two(const double &data)
   {
+    JS_UNUSED(data);
     called_two = true;
   }
 
   bool called_two = false;
 };
 } // namespace
-JS_FUNCTION_CONTAINER_EXTERNAL(CallFunctionSuper, JS_FUNCTION(execute_two));
+JS_FUNCTION_CONTAINER_EXTERNAL(CallFunctionSuper, JS_FUNCTION(execute_two))
 
 namespace
 {
@@ -129,6 +137,7 @@ struct CallFunctionSub : public CallFunctionSuperSuper, public CallFunctionSuper
   ExecuteThreeReturn execute_three(const std::vector<double> &data)
   {
     for (auto x : data)
+      JS_UNUSED(x);
     called_three = true;
     return ExecuteThreeReturn();
   }
@@ -139,7 +148,7 @@ struct CallFunctionSub : public CallFunctionSuperSuper, public CallFunctionSuper
 JS_FUNCTION_CONTAINER_EXTERNAL_WITH_SUPER(CallFunctionSub,
                                           JS_SUPER_CLASSES(JS_SUPER_CLASS(CallFunctionSuperSuper),
                                                            JS_SUPER_CLASS(CallFunctionSuper)),
-                                          JS_FUNCTION(execute_three));
+                                          JS_FUNCTION(execute_three))
 namespace
 {
 TEST_CASE("inheritanceFunctionTestExternalRegular", "[function]")
@@ -161,12 +170,13 @@ struct CallFunctionVirtualOverload : public CallFunction
 {
   virtual void execute_one(const SimpleData &data) override
   {
+    JS_UNUSED(data);
     override_called = true;
   }
   bool override_called = false;
 };
 } // namespace
-JS_FUNCTION_CONTAINER_EXTERNAL_WITH_SUPER(CallFunctionVirtualOverload, JS_SUPER_CLASSES(JS_SUPER_CLASS(CallFunction)));
+JS_FUNCTION_CONTAINER_EXTERNAL_WITH_SUPER_WITHOUT_MEMBERS(CallFunctionVirtualOverload, JS_SUPER_CLASSES(JS_SUPER_CLASS(CallFunction)))
 
 namespace
 {
@@ -226,12 +236,13 @@ struct SuperParamCallable
 {
   void execute_one(const Param &param)
   {
+    JS_UNUSED(param);
     execute_one_executed = true;
   }
   bool execute_one_executed = false;
 };
 } // namespace
-JS_FUNCTION_CONTAINER_EXTERNAL(SuperParamCallable, JS_FUNCTION(execute_one));
+JS_FUNCTION_CONTAINER_EXTERNAL(SuperParamCallable, JS_FUNCTION(execute_one))
 
 namespace
 {
@@ -267,6 +278,7 @@ struct CallVoidStruct
 
   void call_void_context(JS::CallFunctionContext &context)
   {
+    JS_UNUSED(context);
     executed_2 = true;
   }
 
@@ -278,12 +290,14 @@ struct CallVoidStruct
 
   int call_int_void_context(JS::CallFunctionContext &context)
   {
+    JS_UNUSED(context);
     executed_4 = true;
     return 7;
   }
 
   void call_void_error(JS::CallFunctionErrorContext &error)
   {
+    JS_UNUSED(error);
     executed_6 = true;
   }
 
@@ -302,7 +316,7 @@ struct CallVoidStruct
 } // namespace
 JS_FUNCTION_CONTAINER_EXTERNAL(CallVoidStruct, JS_FUNCTION(call_void), JS_FUNCTION(call_void_context),
                                JS_FUNCTION(call_int_void), JS_FUNCTION(call_int_void_context),
-                               JS_FUNCTION(call_void_with_value), JS_FUNCTION(call_void_error));
+                               JS_FUNCTION(call_void_with_value), JS_FUNCTION(call_void_error))
 
 namespace
 {
@@ -347,6 +361,7 @@ struct CallErrorCheck
 
   void call_with_int(int x, JS::CallFunctionErrorContext &context)
   {
+    JS_UNUSED(x);
     executed2 = true;
     context.setError(JS::Error::UserDefinedErrors, "CallWithIntCustomError problem with number");
   }
@@ -358,6 +373,7 @@ struct CallErrorCheck
 
   std::string call_with_object(const CallErrorCheckArg &arg, JS::CallFunctionErrorContext &context)
   {
+    JS_UNUSED(arg);
     executed4 = true;
     context.setError(JS::Error::UserDefinedErrors, "This functions should not serialize the string");
     return std::string("THIS SHOULD NOT BE SERIALIZED");
@@ -370,7 +386,7 @@ struct CallErrorCheck
 };
 } // namespace
 JS_FUNCTION_CONTAINER_EXTERNAL(CallErrorCheck, JS_FUNCTION(call_void), JS_FUNCTION(call_with_int),
-                               JS_FUNCTION(call_another_void), JS_FUNCTION(call_with_object));
+                               JS_FUNCTION(call_another_void), JS_FUNCTION(call_with_object))
 
 namespace
 {
@@ -424,7 +440,7 @@ struct JsonAlias
 };
 } // namespace
 JS_FUNCTION_CONTAINER_EXTERNAL(JsonAlias, JS_FUNCTION(execute_one),
-                               JS_FUNCTION_ALIASES(execute_two_primary, "execute_two"), JS_FUNCTION(execute_three));
+                               JS_FUNCTION_ALIASES(execute_two_primary, "execute_two"), JS_FUNCTION(execute_three))
 
 namespace
 {
@@ -465,11 +481,13 @@ struct JsonWrongArgType
 
   void execute_one(const std::string &foo)
   {
+    JS_UNUSED(foo);
     executeOne = true;
   }
 
   void execute_two(const std::string &bar)
   {
+    JS_UNUSED(bar);
     executeTwo = true;
   }
 
@@ -482,7 +500,7 @@ struct JsonWrongArgType
 } // namespace
 
 JS_FUNCTION_CONTAINER_EXTERNAL(JsonWrongArgType, JS_FUNCTION(execute_one), JS_FUNCTION(execute_two),
-                               JS_FUNCTION(execute_three));
+                               JS_FUNCTION(execute_three))
 
 namespace
 {

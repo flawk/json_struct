@@ -20,7 +20,7 @@
  * OF THIS SOFTWARE.
  */
 
-#include "json_struct.h"
+#include <json_struct/json_struct.h>
 #include "catch2/catch.hpp"
 
 namespace
@@ -95,7 +95,7 @@ void verify_map_meta(const JS::Map &map)
   auto new_meta = JS::metaForTokens(map.tokens);
   REQUIRE(map.meta.size() == new_meta.size());
 
-  for (int i = 0; i < map.meta.size(); i++)
+  for (int i = 0; i < int(map.meta.size()); i++)
   {
     REQUIRE(new_meta[i].children == map.meta[i].children); 
     REQUIRE(new_meta[i].complex_children == map.meta[i].complex_children); 
@@ -131,6 +131,7 @@ TEST_CASE("polymorphic_map_basic", "json_struct")
   REQUIRE(pc.error == JS::Error::NoError);
   ComplexFields_t complexFields1_2;
   error = map.castToType("ComplexFields", pc, complexFields1_2);
+  REQUIRE(error == JS::Error::NoError);
   REQUIRE(pc.error == JS::Error::NoError);
   REQUIRE(complexFields1.Hello == complexFields1_2.Hello);
   REQUIRE(complexFields1.World == complexFields1_2.World);
@@ -155,7 +156,7 @@ TEST_CASE("polymorphic_map_basic", "json_struct")
   REQUIRE(it != map.end());
   REQUIRE(it->value_type == JS::Type::Bool);
 
-  map.setValue("HelloWorld", pc, 4567);
+  map.setValue("HelloWorld", pc, uint64_t(4567));
   REQUIRE(map.castTo<int>("HelloWorld", pc) == 4567);
   REQUIRE(pc.error == JS::Error::NoError);
   verify_map_meta(map);

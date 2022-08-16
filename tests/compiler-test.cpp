@@ -20,7 +20,7 @@
  * OF THIS SOFTWARE.
  */
 
-#include <json_struct.h>
+#include <json_struct/json_struct.h>
 #include <tuple>
 
 #include "catch2/catch.hpp"
@@ -98,6 +98,7 @@ struct Cover
 TEST_CASE("compiler_test", "")
 {
   Cover c;
+  JS_UNUSED(c);
   Cover::FOO<Cover>::getList();
   // Cover::FOO<Cover>::the_sublist();
   REQUIRE(true);

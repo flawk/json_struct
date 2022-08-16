@@ -20,7 +20,7 @@
  * OF THIS SOFTWARE.
  */
 
-#include "json_struct.h"
+#include <json_struct/json_struct.h>
 
 #include "catch2/catch.hpp"
 
@@ -51,7 +51,6 @@ struct SubObject
 void js_validate_json(JS::Tokenizer &tokenizer)
 {
   JS::Token token;
-  ;
   JS::Error error;
   std::string buffer;
 
@@ -105,7 +104,7 @@ TEST_CASE("copy_test_js_partial_2", "[tokenizer]")
 {
   JS::Tokenizer tokenizer;
   size_t offset = 0;
-  std::function<void(JS::Tokenizer &)> func = [&offset, &func](JS::Tokenizer &tok) {
+  std::function<void(JS::Tokenizer &)> func = [&offset](JS::Tokenizer &tok) {
     if (offset + 2 > sizeof(json))
     {
       tok.addData(json + offset, sizeof(json) - offset);
@@ -126,7 +125,7 @@ TEST_CASE("copy_test_js_partial_3", "[tokenizer]")
 {
   JS::Tokenizer tokenizer;
   size_t offset = 0;
-  std::function<void(JS::Tokenizer &)> func = [&offset, &func](JS::Tokenizer &tokenizer) {
+  std::function<void(JS::Tokenizer &)> func = [&offset](JS::Tokenizer &tokenizer) {
     if (offset + 1 > sizeof(json))
     {
       tokenizer.addData(json + offset, sizeof(json) - offset);
@@ -174,7 +173,6 @@ TEST_CASE("copy_test_js_copy_parsed", "[tokenizer]")
   tokenizer.addData(json2);
 
   JS::Token token;
-  ;
   JS::Error error = JS::Error::NoError;
   std::vector<JS::Token> tokens;
   while (error == JS::Error::NoError)

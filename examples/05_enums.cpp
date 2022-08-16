@@ -1,7 +1,7 @@
 #include <stdio.h>
-#include "json_struct.h"
+#include <json_struct/json_struct.h>
 
-JS_ENUM(Color, Red , Green , Blue, Yellow4 ,Purple );
+JS_ENUM(Color, Red , Green , Blue, Yellow4 , Purple )
 
 struct ColorData
 {
@@ -9,7 +9,7 @@ struct ColorData
 
     JS_OBJ(color);
 };
-JS_ENUM_DECLARE_STRING_PARSER(Color);
+JS_ENUM_DECLARE_STRING_PARSER(Color)
 
 const char json[] = R"json({
     "color" : "Green"

@@ -1,5 +1,5 @@
 #include <string>
-#include <json_struct.h>
+#include <json_struct/json_struct.h>
 #include <cinttypes>
 //these two have to be ifdef guarded becuase JS support compiler versions where
 //they are not implemented, hence if you use unordered_map or optional in your code there is no need for the guards.
@@ -77,7 +77,7 @@ int main()
         return -1;
     }
 
-    for(int i = 0; i < dataStruct.vector.size(); i++)
+    for(int i = 0; i < int(dataStruct.vector.size()); i++)
         fprintf(stderr, "vector: %d %d\n", i, dataStruct.vector[i]);
     fprintf(stderr, "string %s\n", dataStruct.string.c_str());
     fprintf(stderr, "tuple:\n");

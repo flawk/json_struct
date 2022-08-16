@@ -1,4 +1,4 @@
-#include "json_struct.h"
+#include <json_struct/json_struct.h>
 
 #include "catch2/catch.hpp"
 
@@ -38,10 +38,12 @@ struct Executor
 {
   void execute_one(const ExecuteOneData &data)
   {
+    JS_UNUSED(data);
     execute_one_called = true;
   }
   ExecuterTwoReturn execute_two(const ExecuteTwoData &data)
   {
+    JS_UNUSED(data);
     execute_two_called = true;
     ExecuterTwoReturn ret;
     ret.string_data = "Ret data";

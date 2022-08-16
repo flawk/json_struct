@@ -20,7 +20,7 @@
  * OF THIS SOFTWARE.
  */
 
-#include "json_struct.h"
+#include <json_struct/json_struct.h>
 
 #include "catch2/catch.hpp"
 
@@ -76,6 +76,10 @@ TEST_CASE("members_size", "[json_struct]")
   for (size_t i = 0; i < JS::Internal::memberCount<Subclass, 0>(); i++)
   {
     array[i] = static_cast<int>(i);
+  }
+  for (int i = 0; i < int(JS::Internal::memberCount<Subclass, 0>()); i++)
+  {
+    REQUIRE(array[i] == i);
   }
 
 }

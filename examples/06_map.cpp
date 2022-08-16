@@ -1,5 +1,5 @@
 #include <string>
-#include <json_struct.h>
+#include <json_struct/json_struct.h>
 
 const char car_json[] = R"json(
 {
@@ -18,8 +18,8 @@ const char sailboat_json[] = R"json(
 }
 )json";
 
-JS_ENUM(VehicleType, car, sailboat);
-JS_ENUM_DECLARE_STRING_PARSER(VehicleType);
+JS_ENUM(VehicleType, car, sailboat)
+JS_ENUM_DECLARE_STRING_PARSER(VehicleType)
 
 struct Car
 {
@@ -41,11 +41,13 @@ struct Sailboat
 
 void handle_car(Car &car)
 {
+  (void) car;
   //do stuff with the car
 }
 
 void handle_sailboat(Sailboat &sailboat)
 {
+  (void) sailboat;
   //do stuff with the sailboat
 }
 

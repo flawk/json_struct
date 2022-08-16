@@ -118,12 +118,12 @@
 #include <cmath>
 #include <cstring>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string>
 #include <vector>
-#include <limits>
 
 #ifdef _MSC_VER
 #include <intrin.h>
@@ -152,6 +152,11 @@
 #include <optional>
 #endif
 
+#ifdef JS_STD_TIMEPOINT
+#include <chrono>
+#include <type_traits>
+#endif
+
 #ifndef JS_IF_CONSTEXPR
 #if __cpp_if_constexpr
 #define JS_IF_CONSTEXPR(exp) if constexpr (exp)
@@ -163,7 +168,6 @@
 #endif
 
 #if defined(min) || defined(max)
-
 #error min or max macro is defined. Make sure these are not defined before including json_struct.h.\
  Use "#define NOMINMAX 1" before including Windows.h
 #endif
@@ -173,110 +177,6 @@
 #ifndef JS
 #define JS JS
 #endif
-
-/*!
- *  \brief int128 support
- */
-namespace JS
-{
-// Overrides for used type_traits
-template< class T > struct js_remove_cv                   { typedef T type; };
-template< class T > struct js_remove_cv<const T>          { typedef T type; };
-template< class T > struct js_remove_cv<volatile T>       { typedef T type; };
-template< class T > struct js_remove_cv<const volatile T> { typedef T type; };
-
-template<typename T>
-  struct js_is_signed
-  : public std::is_signed<T>::type { };
-template<typename T>
-  struct js_is_unsigned
-  : public std::is_unsigned<T>::type { };
-
-template<typename T>
-  struct js_is_integral
-  : public std::is_integral<T>::type { };
-
-// Compiler support check
-#ifdef __SIZEOF_INT128__
-#define JS_INT_128
-typedef __int128 int128_t;
-typedef unsigned __int128 uint128_t;
-#endif
-
-// Add in our type_traits
-#ifdef JS_INT_128
-// TODO: cleanup. only doing this verbose method due to Intel DPCPP...
-template<>
-  struct js_is_signed<int128_t>
-  : public std::true_type { };
-template<>
-  struct js_is_unsigned<uint128_t>
-  : public std::true_type { };
-
-template<>
-  struct js_is_integral<int128_t>
-  : public std::true_type { };
-template<>
-  struct js_is_integral<uint128_t>
-  : public std::true_type { };
-
-template<>
-  struct js_is_signed<const int128_t>
-  : public std::true_type { };
-template<>
-  struct js_is_unsigned<const uint128_t>
-  : public std::true_type { };
-
-template<>
-  struct js_is_integral<const int128_t>
-  : public std::true_type { };
-template<>
-  struct js_is_integral<const uint128_t>
-  : public std::true_type { };
-
-template<>
-  struct js_is_signed<volatile int128_t>
-  : public std::true_type { };
-template<>
-  struct js_is_unsigned<volatile uint128_t>
-  : public std::true_type { };
-
-template<>
-  struct js_is_integral<volatile int128_t>
-  : public std::true_type { };
-template<>
-  struct js_is_integral<volatile uint128_t>
-  : public std::true_type { };
-
-template<>
-  struct js_is_signed<const volatile int128_t>
-  : public std::true_type { };
-template<>
-  struct js_is_unsigned<const volatile uint128_t>
-  : public std::true_type { };
-
-template<>
-  struct js_is_integral<const volatile int128_t>
-  : public std::true_type { };
-template<>
-  struct js_is_integral<const volatile uint128_t>
-  : public std::true_type { };
-
-template<>
-  struct js_is_signed<js_remove_cv<int128_t>>
-  : public std::true_type { };
-template<>
-  struct js_is_unsigned<js_remove_cv<uint128_t>>
-  : public std::true_type { };
-
-template<>
-  struct js_is_integral<js_remove_cv<int128_t>>
-  : public std::true_type { };
-template<>
-  struct js_is_integral<js_remove_cv<uint128_t>>
-  : public std::true_type { };
-#endif
-}
 
 namespace JS
 {
@@ -602,7 +502,7 @@ public:
   }
 
   template <typename... Ts>
-  void invokeCallbacks(Ts &... args)
+  void invokeCallbacks(Ts &...args)
   {
     for (auto &callbackHandler : vec)
     {
@@ -802,11 +702,12 @@ private:
 };
 
 #if __cplusplus >= 201403L
-template<SerializerOptions::Style S = SerializerOptions::Style::Pretty>
-const static SerializerOptions DEFAULT_OPS = []() { // NOLINT(cppcoreguidelines-avoid-non-const-global-variables,cert-err58-cpp)
-  SerializerOptions ops(S);
-  return ops;
-}();
+template <SerializerOptions::Style S = SerializerOptions::Style::Pretty>
+const static SerializerOptions DEFAULT_OPS =
+  []() { // NOLINT(cppcoreguidelines-avoid-non-const-global-variables,cert-err58-cpp)
+    SerializerOptions ops(S);
+    return ops;
+  }();
 #endif
 
 class SerializerBuffer
@@ -1141,7 +1042,8 @@ static const char *error_strings[] = {
 
 inline std::string Tokenizer::makeErrorString() const
 {
-  static_assert(sizeof(Internal::error_strings) / sizeof *Internal::error_strings == size_t(Error::UserDefinedErrors) + 1,
+  static_assert(sizeof(Internal::error_strings) / sizeof *Internal::error_strings ==
+                  size_t(Error::UserDefinedErrors) + 1,
                 "Please add missing error message");
 
   std::string retString("Error");
@@ -1355,7 +1257,6 @@ inline Error Tokenizer::findStartOfNextValue(Type *type, const DataRef &json_dat
     {
       *type = Type::Ascii;
       *chars_ahead = current_pos - cursor_index;
-      ;
       return Error::NoError;
     }
     else if (lc == 0)
@@ -2554,7 +2455,8 @@ struct OptionalChecked
     return assigned;
   }
 #ifdef JS_STD_OPTIONAL
-  operator std::optional<T>() const {
+  operator std::optional<T>() const
+  {
     return assigned ? std::optional<T>(data) : std::nullopt;
   }
 #endif
@@ -2790,14 +2692,16 @@ struct ParseContext
       }
       else if (missing_members.size() == 1)
       {
-        return std::string("JSON Object contained member not found in C++ struct/class. JSON Object member is: ") + missing_members.front();
+        return std::string("JSON Object contained member not found in C++ struct/class. JSON Object member is: ") +
+               missing_members.front();
       }
       std::string member_string = missing_members.front();
-      for (int i = 1; i < missing_members.size(); i++)
+      for (int i = 1; i < int(missing_members.size()); i++)
         member_string += std::string(", ") + missing_members[i];
-      return std::string("JSON Object contained members not found in C++ struct/class. JSON Object members are: ") + member_string;
+      return std::string("JSON Object contained members not found in C++ struct/class. JSON Object members are: ") +
+             member_string;
     }
-    else if (error  == Error::UnassignedRequiredMember)
+    else if (error == Error::UnassignedRequiredMember)
     {
       if (unassigned_required_members.size() == 0)
       {
@@ -2805,12 +2709,16 @@ struct ParseContext
       }
       else if (unassigned_required_members.size() == 1)
       {
-        return std::string("C++ struct/class has a required member that is not present in input JSON. The unassigned C++ member is: ") + unassigned_required_members.front();
+        return std::string("C++ struct/class has a required member that is not present in input JSON. The unassigned "
+                           "C++ member is: ") +
+               unassigned_required_members.front();
       }
       std::string required_string = unassigned_required_members.front();
-      for (int i = 1; i< unassigned_required_members.size(); i++)
+      for (int i = 1; i < int(unassigned_required_members.size()); i++)
         required_string += std::string(", ") + unassigned_required_members[i];
-      return std::string("C++ struct/class has required members that are not present in the input JSON. The unassigned C++ members are: ") + required_string;
+      return std::string("C++ struct/class has required members that are not present in the input JSON. The unassigned "
+                         "C++ members are: ") +
+             required_string;
     }
     if (tokenizer.errorContext().error == Error::NoError && error != Error::NoError)
     {
@@ -2832,7 +2740,7 @@ struct ParseContext
   bool allow_missing_members = true;
   bool allow_unnasigned_required_members = true;
   bool track_member_assignement_state = true;
-  void* user_data = nullptr;
+  void *user_data = nullptr;
 };
 
 /*! \def JS_MEMBER
@@ -2923,7 +2831,7 @@ struct JsonStructBaseDummy
 #define JS_INTERNAL_DEFER1(m) m JS_INTERNAL_EMPTY()
 #define JS_INTERNAL_DEFER2(m) m JS_INTERNAL_EMPTY JS_INTERNAL_EMPTY()()
 
-#define JS_INTERNAL_IS_PROBE(...) JS_INTERNAL_SECOND(__VA_ARGS__, 0)
+#define JS_INTERNAL_IS_PROBE(...) JS_INTERNAL_SECOND(__VA_ARGS__, 0, 0)
 #define JS_INTERNAL_PROBE() ~, 1
 
 #define JS_INTERNAL_CAT(a, b) a##b
@@ -2942,7 +2850,8 @@ struct JsonStructBaseDummy
 #define JS_INTERNAL__IF_1_ELSE(...)
 #define JS_INTERNAL__IF_0_ELSE(...) __VA_ARGS__
 
-#define JS_INTERNAL_HAS_ARGS(...) JS_INTERNAL_BOOL(JS_INTERNAL_FIRST(JS_INTERNAL__END_OF_ARGUMENTS_ __VA_ARGS__)())
+#define JS_INTERNAL_HAS_MORE_THAN_ONE_ARGS(...)                                                                        \
+  JS_INTERNAL_BOOL(JS_INTERNAL_SECOND(JS_INTERNAL__END_OF_ARGUMENTS_ __VA_ARGS__, 0, 0)())
 #define JS_INTERNAL__END_OF_ARGUMENTS_() 0
 
 #define JS_MEMBER(member) JS::makeMemberInfo(#member, &JS_OBJECT_T::member)
@@ -2957,20 +2866,31 @@ struct JsonStructBaseDummy
 #define JS_INTERNAL__MAP_MEMBER() JS_INTERNAL_MAP_MEMBER
 
 #define JS_INTERNAL_MAKE_MEMBERS(...)                                                                                  \
-  JS_INTERNAL_EXPAND(JS_INTERNAL_EVAL(JS_INTERNAL_MAP_MEMBER(JS::makeMemberInfo, __VA_ARGS__)))
+  JS_INTERNAL_IF_ELSE(JS_INTERNAL_HAS_MORE_THAN_ONE_ARGS(__VA_ARGS__))                                                 \
+  (JS_INTERNAL_EXPAND(JS_INTERNAL_EVAL(JS_INTERNAL_MAP_MEMBER(JS::makeMemberInfo, __VA_ARGS__))))(                     \
+    JS_INTERNAL_MAP_APPLY_MEMBER(JS::makeMemberInfo, __VA_ARGS__))
+
+#define JS_INTERNAL_MAP_APPLY_MEMBER(m, first) m(#first, &JS_OBJECT_T::first)
 
 #define JS_INTERNAL_MAP_MEMBER(m, first, ...)                                                                          \
-  m(#first, &JS_OBJECT_T::first) JS_INTERNAL_IF_ELSE(JS_INTERNAL_HAS_ARGS(__VA_ARGS__))(                               \
-    , JS_INTERNAL_DEFER2(JS_INTERNAL__MAP_MEMBER)()(m, __VA_ARGS__))(/* Do nothing, just terminate */                  \
-  )
+  JS_INTERNAL_MAP_APPLY_MEMBER(m, first)                                                                               \
+  JS_INTERNAL_IF_ELSE(JS_INTERNAL_HAS_MORE_THAN_ONE_ARGS(__VA_ARGS__))                                                 \
+  (, JS_INTERNAL_DEFER2(JS_INTERNAL__MAP_MEMBER)()(m, __VA_ARGS__))(, JS_INTERNAL_MAP_APPLY_MEMBER(m, __VA_ARGS__))
+
+#define JS_INTERNAL_MAP_APPLY_SUPER(m, first) m<first>(#first)
+
 #define JS_INTERNAL_MAP_SUPER(m, first, ...)                                                                           \
-  m<first>(#first) JS_INTERNAL_IF_ELSE(JS_INTERNAL_HAS_ARGS(__VA_ARGS__))(                                             \
-    , JS_INTERNAL_DEFER2(JS_INTERNAL__MAP_SUPER)()(m, __VA_ARGS__))(/* Do nothing, just terminate */                   \
-  )
+  JS_INTERNAL_MAP_APPLY_SUPER(m, first)                                                                                \
+  JS_INTERNAL_IF_ELSE(JS_INTERNAL_HAS_MORE_THAN_ONE_ARGS(__VA_ARGS__))                                                 \
+  (, JS_INTERNAL_DEFER2(JS_INTERNAL__MAP_SUPER)()(m, __VA_ARGS__))(, JS_INTERNAL_MAP_APPLY_SUPER(m, __VA_ARGS__))
+
 #define JS_INTERNAL__MAP_SUPER() JS_INTERNAL_MAP_SUPER
 
 #define JS_INTERNAL_MAKE_SUPER_CLASSES(...)                                                                            \
-  JS_INTERNAL_EXPAND(JS_INTERNAL_EVAL(JS_INTERNAL_MAP_SUPER(JS::makeSuperInfo, __VA_ARGS__)))
+  JS_INTERNAL_IF_ELSE(JS_INTERNAL_HAS_MORE_THAN_ONE_ARGS(__VA_ARGS__))                                                 \
+  (JS_INTERNAL_EXPAND(JS_INTERNAL_EVAL(JS_INTERNAL_MAP_SUPER(JS::makeSuperInfo, __VA_ARGS__))))(                       \
+    JS_INTERNAL_MAP_APPLY_SUPER(JS::makeSuperInfo, __VA_ARGS__))
+
 #define JS_SUPER(...) JS::makeTuple(JS_INTERNAL_EXPAND(JS_INTERNAL_MAKE_SUPER_CLASSES(__VA_ARGS__)))
 
 #define JS_OBJECT_INTERNAL_IMPL(super_list, member_list)                                                               \
@@ -3071,7 +2991,7 @@ struct SuperInfo
 } // namespace Internal
 
 template <typename T, typename U, size_t NAME_SIZE, typename... Aliases>
-constexpr auto makeMemberInfo(const char (&name)[NAME_SIZE], T U::*member, Aliases &... aliases)
+constexpr auto makeMemberInfo(const char (&name)[NAME_SIZE], T U::*member, Aliases &...aliases)
   -> MI<T, U, decltype(makeTuple(JS::Internal::makeStringLiteral(name), JS::Internal::makeStringLiteral(aliases)...))>
 {
   return {makeTuple(JS::Internal::makeStringLiteral(name), JS::Internal::makeStringLiteral(aliases)...), member};
@@ -3083,7 +3003,7 @@ constexpr const Internal::SuperInfo<T> makeSuperInfo(const char (&name)[NAME_SIZ
   return Internal::SuperInfo<T>(DataRef(name));
 }
 
-template <typename T>
+template <typename T, typename Enable = void>
 struct TypeHandler
 {
   static inline Error to(T &to_type, ParseContext &context);
@@ -3470,7 +3390,8 @@ inline Error ParseContext::parseTo(T &to_type)
   if (error != JS::Error::NoError)
     return error;
   error = TypeHandler<T>::to(to_type, *this);
-  if (error != JS::Error::NoError && tokenizer.errorContext().error == JS::Error::NoError) {
+  if (error != JS::Error::NoError && tokenizer.errorContext().error == JS::Error::NoError)
+  {
     tokenizer.updateErrorContext(error);
   }
   return error;
@@ -3827,32 +3748,37 @@ struct JsonStructFunctionContainerDummy
 #define JS_FUNCTION_WITH_NAME_ALIASES(member, name, ...)                                                               \
   JS::makeFunctionInfo(name, &JS_CONTAINER_STRUCT_T::member, __VA_ARGS__)
 
+#define JS_INTERNAL_MAP_APPLY_FUNCTION(m, first) m(#first, &JS_CONTAINER_STRUCT_T::first)
+
 #define JS_INTERNAL_MAP_FUNCTION(m, first, ...)                                                                        \
-  m(#first, &JS_CONTAINER_STRUCT_T::first) JS_INTERNAL_IF_ELSE(JS_INTERNAL_HAS_ARGS(__VA_ARGS__))(                     \
-    , JS_INTERNAL_DEFER2(JS_INTERNAL__MAP_FUNCTION)()(m, __VA_ARGS__))(/* Do nothing, just terminate */                \
-  )
+  JS_INTERNAL_MAP_APPLY_FUNCTION(m, first)                                                                             \
+  JS_INTERNAL_IF_ELSE(JS_INTERNAL_HAS_MORE_THAN_ONE_ARGS(__VA_ARGS__))                                                 \
+  (, JS_INTERNAL_DEFER2(JS_INTERNAL__MAP_FUNCTION)()(m, __VA_ARGS__))(, JS_INTERNAL_MAP_APPLY_FUNCTION(m, __VA_ARGS__))
+
 #define JS_INTERNAL__MAP_FUNCTION() JS_INTERNAL_MAP_FUNCTION
 
 #define JS_INTERNAL_MAKE_FUNCTIONS(...)                                                                                \
-  JS_INTERNAL_EXPAND(JS_INTERNAL_EVAL(JS_INTERNAL_MAP_FUNCTION(JS::makeFunctionInfo, __VA_ARGS__)))
+  JS_INTERNAL_IF_ELSE(JS_INTERNAL_HAS_MORE_THAN_ONE_ARGS(__VA_ARGS__))                                                 \
+  (JS_INTERNAL_EXPAND(JS_INTERNAL_EVAL(JS_INTERNAL_MAP_FUNCTION(JS::makeFunctionInfo, __VA_ARGS__))))(                 \
+    JS_INTERNAL_MAP_APPLY_FUNCTION(JS::makeFunctionInfo, __VA_ARGS__))
 
-#define JS_FUNCTION_CONTAINER_INTERNAL_IMPL(super_list, function_list)                                                   \
+#define JS_FUNCTION_CONTAINER_INTERNAL_IMPL(super_list, function_list)                                                 \
   template <typename JS_CONTAINER_STRUCT_T>                                                                            \
   struct JsonStructFunctionContainer                                                                                   \
   {                                                                                                                    \
-    using TT = decltype(function_list);                                                                   \
+    using TT = decltype(function_list);                                                                                \
     static const TT &js_static_meta_functions_info()                                                                   \
     {                                                                                                                  \
-      static auto ret = function_list;                                                                    \
+      static auto ret = function_list;                                                                                 \
       return ret;                                                                                                      \
     }                                                                                                                  \
-    static const decltype(super_list) js_static_meta_super_info()                                                 \
+    static const decltype(super_list) js_static_meta_super_info()                                                      \
     {                                                                                                                  \
-      return super_list;                                                                                          \
+      return super_list;                                                                                               \
     }                                                                                                                  \
   }
 
-#define JS_FUNCTION_CONTAINER_EXTERNAL_INTERNAL_IMPL(Type, super_list, function_list) \
+#define JS_FUNCTION_CONTAINER_EXTERNAL_INTERNAL_IMPL(Type, super_list, function_list)                                  \
   namespace JS                                                                                                         \
   {                                                                                                                    \
   namespace Internal                                                                                                   \
@@ -3860,30 +3786,42 @@ struct JsonStructFunctionContainerDummy
   template <typename JS_CONTAINER_STRUCT_T>                                                                            \
   struct JsonStructFunctionContainerDummy<Type, JS_CONTAINER_STRUCT_T>                                                 \
   {                                                                                                                    \
-    using TT = decltype(function_list);                                                                   \
+    using TT = decltype(function_list);                                                                                \
     static const TT &js_static_meta_functions_info()                                                                   \
     {                                                                                                                  \
-      static auto ret = function_list;                                                                    \
+      static auto ret = function_list;                                                                                 \
       return ret;                                                                                                      \
     }                                                                                                                  \
-    static const decltype(super_list) js_static_meta_super_info()                                                 \
+    static const decltype(super_list) js_static_meta_super_info()                                                      \
     {                                                                                                                  \
-      return super_list;                                                                                          \
+      return super_list;                                                                                               \
     }                                                                                                                  \
   };                                                                                                                   \
   }                                                                                                                    \
   }
 
-#define JS_FUNC_OBJ(...) JS_FUNCTION_CONTAINER_INTERNAL_IMPL(JS::makeTuple(), JS::makeTuple(JS_INTERNAL_MAKE_FUNCTIONS(__VA_ARGS__)))
+#define JS_FUNC_OBJ(...)                                                                                               \
+  JS_FUNCTION_CONTAINER_INTERNAL_IMPL(JS::makeTuple(), JS::makeTuple(JS_INTERNAL_MAKE_FUNCTIONS(__VA_ARGS__)))
 #define JS_FUNCTION_CONTAINER(...) JS_FUNCTION_CONTAINER_INTERNAL_IMPL(JS::makeTuple(), JS::makeTuple(__VA_ARGS__))
-#define JS_FUNC_OBJ_SUPER(super_list, ...)  JS_FUNCTION_CONTAINER_INTERNAL_IMPL(super_list, JS::makeTuple(JS_INTERNAL_MAKE_FUNCTIONS(__VA_ARGS__)))
-#define JS_FUNCTION_CONTAINER_WITH_SUPER(super_list, ...) JS_FUNCTION_CONTAINER_INTERNAL_IMPL(super_list, JS::makeTuple(__VA_ARGS__))
+#define JS_FUNC_OBJ_SUPER(super_list, ...)                                                                             \
+  JS_FUNCTION_CONTAINER_INTERNAL_IMPL(super_list, JS::makeTuple(JS_INTERNAL_MAKE_FUNCTIONS(__VA_ARGS__)))
+#define JS_FUNCTION_CONTAINER_WITH_SUPER(super_list, ...)                                                              \
+  JS_FUNCTION_CONTAINER_INTERNAL_IMPL(super_list, JS::makeTuple(__VA_ARGS__))
+#define JS_FUNCTION_CONTAINER_WITH_SUPER_WITHOUT_MEMBERS(super_list)                                                   \
+  JS_FUNCTION_CONTAINER_INTERNAL_IMPL(super_list, JS::makeTuple())
 
-#define JS_FUNC_OBJ_EXTERNAL(Type, ...) JS_FUNCTION_CONTAINER_EXTERNAL_INTERNAL_IMPL(Type, JS::makeTuple(), JS::makeTuple(JS_INTERNAL_MAKE_FUNCTIONS(__VA_ARGS__)))
-#define JS_FUNCTION_CONTAINER_EXTERNAL(Type, ...) JS_FUNCTION_CONTAINER_EXTERNAL_INTERNAL_IMPL(Type, JS::makeTuple(), JS::makeTuple(__VA_ARGS__))
-#define JS_FUNC_OBJ_EXTERNAL_SUPER(Type, super_list, ...) JS_FUNCTION_CONTAINER_EXTERNAL_INTERNAL_IMPL(Type, super_list, JS::makeTuple(JS_INTERNAL_MAKE_FUNCTIONS(__VA_ARGS__)))
-#define JS_FUNCTION_CONTAINER_EXTERNAL_WITH_SUPER(Type, super_list, ...) JS_FUNCTION_CONTAINER_EXTERNAL_INTERNAL_IMPL(Type, super_list, JS::makeTuple(__VA_ARGS__))
+#define JS_FUNC_OBJ_EXTERNAL(Type, ...)                                                                                \
+  JS_FUNCTION_CONTAINER_EXTERNAL_INTERNAL_IMPL(Type, JS::makeTuple(),                                                  \
+                                               JS::makeTuple(JS_INTERNAL_MAKE_FUNCTIONS(__VA_ARGS__)))
+#define JS_FUNCTION_CONTAINER_EXTERNAL(Type, ...)                                                                      \
+  JS_FUNCTION_CONTAINER_EXTERNAL_INTERNAL_IMPL(Type, JS::makeTuple(), JS::makeTuple(__VA_ARGS__))
+#define JS_FUNC_OBJ_EXTERNAL_SUPER(Type, super_list, ...)                                                              \
+  JS_FUNCTION_CONTAINER_EXTERNAL_INTERNAL_IMPL(Type, super_list, JS::makeTuple(JS_INTERNAL_MAKE_FUNCTIONS(__VA_ARGS__)))
+#define JS_FUNCTION_CONTAINER_EXTERNAL_WITH_SUPER(Type, super_list, ...)                                               \
+  JS_FUNCTION_CONTAINER_EXTERNAL_INTERNAL_IMPL(Type, super_list, JS::makeTuple(__VA_ARGS__))
 
+#define JS_FUNCTION_CONTAINER_EXTERNAL_WITH_SUPER_WITHOUT_MEMBERS(Type, super_list)                                    \
+  JS_FUNCTION_CONTAINER_EXTERNAL_INTERNAL_IMPL(Type, super_list, JS::makeTuple())
 namespace Internal
 {
 template <typename T, typename U, typename Ret, typename Arg, size_t NAME_COUNT, size_t TAKES_CONTEXT>
@@ -4010,7 +3948,7 @@ static inline void checkValidVoidParameter(CallFunctionContext &context)
       context.parse_context.token.value_type != Type::ObjectStart &&
       context.parse_context.token.value_type != Type::Bool)
   {
-    //what to do
+    // what to do
     fprintf(stderr, "Passing data arguments to a void function\n");
   }
   skipArrayOrObject(context.parse_context);
@@ -4484,8 +4422,8 @@ void populateEnumNames(std::vector<DataRef> &names, const char (&data)[N])
 
 namespace JS
 {
-template <typename T>
-inline Error TypeHandler<T>::to(T &to_type, ParseContext &context)
+template <typename T, typename Enable>
+inline Error TypeHandler<T, Enable>::to(T &to_type, ParseContext &context)
 {
   if (context.token.value_type != JS::Type::ObjectStart)
     return Error::ExpectedObjectStart;
@@ -4544,8 +4482,8 @@ inline Error TypeHandler<T>::to(T &to_type, ParseContext &context)
   return error;
 }
 
-template <typename T>
-void TypeHandler<T>::from(const T &from_type, Token &token, Serializer &serializer)
+template <typename T, typename Enable>
+void TypeHandler<T, Enable>::from(const T &from_type, Token &token, Serializer &serializer)
 {
   static const char objectStart[] = "{";
   static const char objectEnd[] = "}";
@@ -4651,7 +4589,7 @@ static void handle_json_escapes_in(const DataRef &ref, std::string &to_type)
     }
     size -= 2;
     const char current_char = *(next_it + 1);
-    //we assume utf-8 encoding when this notation is used and parsing into std::string
+    // we assume utf-8 encoding when this notation is used and parsing into std::string
     if (current_char == 'u') // hexadecimal escaped unicode character
     {
       // first convert hex ascii digits to values between 0 and 15, then create
@@ -4798,6 +4736,7 @@ namespace Internal
 // This code is taken from https://github.com/jorgen/float_tools
 namespace ft
 {
+template <typename T>
 struct float_base10
 {
   uint8_t negative;
@@ -4805,10 +4744,11 @@ struct float_base10
   uint8_t nan;
   uint8_t significand_digit_count;
   int exp;
-  uint64_t significand;
+  T significand;
 };
 
-struct parsed_string : float_base10
+template <typename T>
+struct parsed_string : float_base10<T>
 {
   const char *endptr;
 };
@@ -5080,7 +5020,8 @@ inline void get_parts(T f, bool &negative, int &exp, uint64_t &mentissa)
   negative = bits >> ((sizeof(f) * 8) - 1);
 }
 
-inline void assign_significand_to_float_conversion_type(const float_base10 &significand, uint64_t (&a)[2])
+template <typename T>
+inline void assign_significand_to_float_conversion_type(const float_base10<T> &significand, uint64_t (&a)[2])
 {
   a[0] = significand.significand;
   a[1] = 0;
@@ -5283,7 +5224,8 @@ I find_if(I first, I last, P p)
   return last;
 }
 
-inline void assign_significand_to_float_conversion_type(const float_base10 &significand, uint64_t &a)
+template <typename T>
+inline void assign_significand_to_float_conversion_type(const float_base10<T> &significand, uint64_t &a)
 {
   a = significand.significand;
 }
@@ -5366,13 +5308,13 @@ struct CharsInDigit<T, -1, CURRENT>
 };
 
 template <typename T>
-T iabs(typename std::enable_if<js_is_unsigned<T>::value, T>::type a)
+T iabs(typename std::enable_if<std::is_unsigned<T>::value, T>::type a)
 {
   return a;
 }
 
 template <typename T>
-T iabs(typename std::enable_if<js_is_signed<T>::value, T>::type a)
+T iabs(typename std::enable_if<std::is_signed<T>::value, T>::type a)
 {
   // this
   if (a > 0)
@@ -6173,6 +6115,10 @@ inline void compute_shortest(uint64_t a, uint64_t b, uint64_t c, bool accept_sma
 template <typename T>
 inline uint64_t multiply_and_shift(uint64_t a, const uint64_t *b, int shift_right, bool round_up)
 {
+  (void)a;
+  (void)b;
+  (void)shift_right;
+  (void)round_up;
   return 0;
 }
 template <>
@@ -6295,8 +6241,8 @@ inline uint64_t pow_int(int n, int exp)
   return ret;
 }
 
-template <typename T>
-static float_base10 decode(T f)
+template <typename T, typename SignificandType>
+static float_base10<SignificandType> decode(T f)
 {
   bool negative;
   int exp;
@@ -6393,8 +6339,9 @@ static float_base10 decode(T f)
   return {negative, false, false, uint8_t(significand_digit_count), e, shortest_base10};
 }
 
-inline int convert_parsed_to_buffer(const float_base10 &result, char *buffer, int buffer_size, int max_expanded_length,
-                                    int *digits_truncated = nullptr)
+template <typename T>
+inline int convert_parsed_to_buffer(const float_base10<T> &result, char *buffer, int buffer_size,
+                                    int max_expanded_length, int *digits_truncated = nullptr)
 {
   if (buffer_size < 1)
     return 0;
@@ -6570,9 +6517,10 @@ inline int convert_parsed_to_buffer(const float_base10 &result, char *buffer, in
 
 } // namespace ryu
 
+template <typename T>
 struct set_end_ptr
 {
-  set_end_ptr(parsed_string &parsedString, const char *&current)
+  set_end_ptr(parsed_string<T> &parsedString, const char *&current)
     : parsedString(parsedString)
     , current(current)
   {
@@ -6581,7 +6529,7 @@ struct set_end_ptr
   {
     parsedString.endptr = current;
   }
-  parsed_string &parsedString;
+  parsed_string<T> &parsedString;
   const char *&current;
 };
 
@@ -6592,10 +6540,11 @@ inline bool is_space(char a)
   return false;
 }
 
-inline parse_string_error parseNumber(const char *number, size_t size, parsed_string &parsedString)
+template <typename T, bool NoDigitCount>
+inline parse_string_error parseNumber(const char *number, size_t size, parsed_string<T> &parsedString)
 {
   const char *current;
-  set_end_ptr setendptr(parsedString, current);
+  set_end_ptr<T> setendptr(parsedString, current);
   int desimal_position = -1;
   bool increase_significand = true;
 
@@ -6630,20 +6579,27 @@ inline parse_string_error parseNumber(const char *number, size_t size, parsed_st
     }
     else
     {
-      if (parsedString.significand_digit_count < 19)
+#ifdef _MSC_VER
+      bool localDigitCount = NoDigitCount;
+      if (localDigitCount || parsedString.significand_digit_count < 19)
+#else
+      if (NoDigitCount || parsedString.significand_digit_count < 19)
+#endif
       {
-        parsedString.significand = parsedString.significand * uint64_t(10) + (uint64_t(*current) - '0');
+        parsedString.significand = parsedString.significand * T(10) + T(int(*current) - '0');
         parsedString.significand_digit_count++;
       }
       else if (increase_significand && parsedString.significand_digit_count < 20)
       {
         increase_significand = false;
         uint64_t digit = uint64_t(*current) - '0';
+        static_assert(NoDigitCount || std::is_same<T, uint64_t>::value,
+                      "When NoDigitCount is used the significand type has to be uint64_t");
         auto biggest_multiplier = (std::numeric_limits<uint64_t>::max() - digit) / parsedString.significand;
 
         if (biggest_multiplier >= 10)
         {
-          parsedString.significand = parsedString.significand * uint64_t(10) + digit;
+          parsedString.significand = parsedString.significand * T(10) + T(digit);
           parsedString.significand_digit_count++;
         }
       }
@@ -6727,8 +6683,8 @@ inline uint64_t getPow10(uint32_t pow)
   return data[pow];
 }
 
-template <typename T>
-inline T convertToNumber(const parsed_string &parsed)
+template <typename T, typename SignificandType>
+inline T convertToNumber(const parsed_string<SignificandType> &parsed)
 {
   int base10exponent = parsed.exp + parsed.significand_digit_count - 1;
   if (base10exponent > float_info<T>::max_base10_exponent())
@@ -6806,7 +6762,7 @@ namespace ryu
 template <typename T>
 int to_buffer(T d, char *buffer, int buffer_size, int *digits_truncated = nullptr)
 {
-  auto decoded = decode(d);
+  auto decoded = decode<T, uint64_t>(d);
   return convert_parsed_to_buffer(decoded, buffer, buffer_size, float_info<T>::str_to_float_expanded_length(),
                                   digits_truncated);
 }
@@ -6814,7 +6770,7 @@ int to_buffer(T d, char *buffer, int buffer_size, int *digits_truncated = nullpt
 template <typename T>
 inline std::string to_string(T f)
 {
-  auto decoded = decode(f);
+  auto decoded = decode<T, uint64_t>(f);
   std::string ret;
   ret.resize(25);
   ret.resize(
@@ -6828,11 +6784,11 @@ namespace integer
 template <typename T>
 inline int to_buffer(T integer, char *buffer, int buffer_size, int *digits_truncated = nullptr)
 {
-  static_assert(js_is_integral<T>::value, "Tryint to convert non int to string");
+  static_assert(std::is_integral<T>::value, "Tryint to convert non int to string");
   int chars_to_write = ft::count_chars(integer);
   char *target_buffer = buffer;
   bool negative = false;
-  if (js_is_signed<T>::value)
+  if (std::is_signed<T>::value)
   {
     if (integer < 0)
     {
@@ -6859,7 +6815,7 @@ inline int to_buffer(T integer, char *buffer, int buffer_size, int *digits_trunc
   for (int i = 0; i < chars_to_write; i++)
   {
     int remainder = integer % 10;
-    if (js_is_signed<T>::value)
+    if (std::is_signed<T>::value)
     {
       if (negative)
         remainder = -remainder;
@@ -6871,22 +6827,22 @@ inline int to_buffer(T integer, char *buffer, int buffer_size, int *digits_trunc
   return chars_to_write + negative;
 }
 
-template <typename T>
-inline typename std::enable_if<js_is_signed<T>::value, T>::type make_integer_return_value(uint64_t significand,
+template <typename T, typename SignificandType>
+inline typename std::enable_if<std::is_signed<T>::value, T>::type make_integer_return_value(SignificandType significand,
                                                                                             bool negative)
 {
   return negative ? -T(significand) : T(significand);
 }
 
-template <typename T>
-inline typename std::enable_if<js_is_unsigned<T>::value, T>::type make_integer_return_value(uint64_t significand,
-                                                                                              bool)
+template <typename T, typename SignificandType>
+inline typename std::enable_if<std::is_unsigned<T>::value, T>::type make_integer_return_value(
+  SignificandType significand, bool)
 {
   return T(significand);
 }
 
-template <typename T>
-inline T convert_to_integer(const parsed_string &parsed)
+template <typename T, typename SignificandType>
+inline T convert_to_integer(const parsed_string<SignificandType> &parsed)
 {
   if (parsed.inf)
     return parsed.negative ? std::numeric_limits<T>::min() : std::numeric_limits<T>::max();
@@ -6894,7 +6850,7 @@ inline T convert_to_integer(const parsed_string &parsed)
     return T(0);
 
   int exp = parsed.exp;
-  uint64_t significand = parsed.significand;
+  auto significand = parsed.significand;
   if (exp < 0)
   {
     int chars_in_sig = count_chars(significand);
@@ -6923,8 +6879,9 @@ inline T convert_to_integer(const parsed_string &parsed)
 template <typename T>
 inline parse_string_error to_integer(const char *str, size_t size, T &target, const char *(&endptr))
 {
-  parsed_string ps;
-  auto parseResult = parseNumber(str, size, ps);
+  using SignificandType = typename std::make_unsigned<T>::type;
+  parsed_string<SignificandType> ps;
+  auto parseResult = parseNumber<SignificandType, true>(str, size, ps);
   endptr = ps.endptr;
   if (parseResult != parse_string_error::ok)
   {
@@ -6947,8 +6904,8 @@ inline parse_string_error to_integer(const std::string &str, T &target, const ch
 template <typename T>
 inline parse_string_error to_ieee_t(const char *str, size_t size, T &target, const char *(&endptr))
 {
-  parsed_string ps;
-  auto parseResult = parseNumber(str, size, ps);
+  parsed_string<uint64_t> ps;
+  auto parseResult = parseNumber<uint64_t, false>(str, size, ps);
   endptr = ps.endptr;
   if (parseResult != parse_string_error::ok)
   {
@@ -7038,7 +6995,7 @@ struct TypeHandler<float>
 };
 
 /// \private
-template<typename T>
+template <typename T>
 struct TypeHandlerIntType
 {
   static inline Error to(T &to_type, ParseContext &context)
@@ -7071,45 +7028,51 @@ struct TypeHandlerIntType
 
 /// \private
 template <>
-struct TypeHandler<short int> : TypeHandlerIntType<short int> {};
+struct TypeHandler<short int> : TypeHandlerIntType<short int>
+{
+};
 
 /// \private
 template <>
-struct TypeHandler<unsigned short int> : TypeHandlerIntType<unsigned short int> {};
+struct TypeHandler<unsigned short int> : TypeHandlerIntType<unsigned short int>
+{
+};
 
 /// \private
 template <>
-struct TypeHandler<int> : TypeHandlerIntType<int> {};
+struct TypeHandler<int> : TypeHandlerIntType<int>
+{
+};
 
 /// \private
 template <>
-struct TypeHandler<unsigned int> : TypeHandlerIntType<unsigned int> {};
+struct TypeHandler<unsigned int> : TypeHandlerIntType<unsigned int>
+{
+};
 
 /// \private
 template <>
-struct TypeHandler<long int> : TypeHandlerIntType<long int> {};
+struct TypeHandler<long int> : TypeHandlerIntType<long int>
+{
+};
 
 /// \private
 template <>
-struct TypeHandler<unsigned long int> : TypeHandlerIntType<unsigned long int> {};
+struct TypeHandler<unsigned long int> : TypeHandlerIntType<unsigned long int>
+{
+};
 
 /// \private
 template <>
-struct TypeHandler<long long int> : TypeHandlerIntType<long long int> {};
+struct TypeHandler<long long int> : TypeHandlerIntType<long long int>
+{
+};
 
 /// \private
 template <>
-struct TypeHandler<unsigned long long int> : TypeHandlerIntType<unsigned long long int> {};
-
-#ifdef JS_INT_128
-/// \private
-template <>
-struct TypeHandler<int128_t> : TypeHandlerIntType<int128_t> {};
-
-/// \private
-template <>
-struct TypeHandler<uint128_t> : TypeHandlerIntType<uint128_t> {};
-#endif
+struct TypeHandler<unsigned long long int> : TypeHandlerIntType<unsigned long long int>
+{
+};
 
 template <>
 struct TypeHandler<uint8_t> : TypeHandlerIntType<uint8_t>
@@ -7125,7 +7088,6 @@ template <>
 struct TypeHandler<char> : TypeHandlerIntType<char>
 {
 };
-
 
 /// \private
 template <typename T>
@@ -7331,6 +7293,59 @@ struct TypeHandler<bool>
     serializer.write(token);
   }
 };
+
+#ifdef JS_STD_TIMEPOINT
+/// \private
+namespace Internal
+{
+    template <class T, template <class...> class Template>
+    struct is_specialization : std::false_type {};
+
+    template <template <class...> class Template, class... Args>
+    struct is_specialization<Template<Args...>, Template> : std::true_type {};
+}
+
+/// \private
+template <class T>
+struct TypeHandler<T, typename std::enable_if_t<Internal::is_specialization<T, std::chrono::time_point>::value>>
+{
+    static inline Error to(T& to_type, ParseContext &context)
+    {
+        uint64_t t;
+        Error err = TypeHandler<uint64_t>::to(t, context);
+        if (err != Error::NoError)
+            return err;
+
+        if (t <= 1e11) // Seconds => 10 digits, normally
+            to_type = T{std::chrono::seconds{t}};
+        else if (t <= 1e14) // Milliseconds => 13 digits, normally
+            to_type = T{std::chrono::milliseconds{t}};
+        else if (t <= 1e17) // Microseconds
+            to_type = T{std::chrono::microseconds{t}};
+        else if (t <= 1e20) // Nanoseconds
+            if constexpr (std::is_same_v<std::chrono::high_resolution_clock::time_point, T>)
+                to_type = T{std::chrono::nanoseconds{t}};
+            else
+                return JS::Error::IllegalDataValue;
+        else
+            return JS::Error::IllegalDataValue;
+
+        return JS::Error::NoError;
+    }
+
+    static inline void from(const T& val, Token &token, Serializer &serializer)
+    {
+        uint64_t t;
+        if constexpr (std::is_same_v<std::chrono::high_resolution_clock::time_point, T>)
+        	t = std::chrono::duration_cast<std::chrono::nanoseconds>(val.time_since_epoch()).count();
+		else
+        	t = std::chrono::duration_cast<std::chrono::microseconds>(val.time_since_epoch()).count();
+		while (t % 1000 == 0 && t > (uint64_t)1e10)
+			t /= 1000;
+        TypeHandler<uint64_t>::from(t, token, serializer);
+    }
+};
+#endif
 
 /// \private
 template <typename T>
@@ -8123,20 +8138,21 @@ struct TypeHandlerMap
   }
 };
 
-
 #ifdef JS_STD_UNORDERED_MAP
 template <typename Key, typename Value>
-struct TypeHandler<std::unordered_map<Key, Value>> : TypeHandlerMap<Key, Value, std::unordered_map<Key, Value>> {};
+struct TypeHandler<std::unordered_map<Key, Value>> : TypeHandlerMap<Key, Value, std::unordered_map<Key, Value>>
+{
+};
 
 #endif
 
 namespace Internal
 {
-  inline bool compareDataRefWithString(const DataRef& a, const std::string& b)
-  {
-    return a.size == b.size() && memcmp(a.data, b.data(), a.size) == 0;
-  }
+inline bool compareDataRefWithString(const DataRef &a, const std::string &b)
+{
+  return a.size == b.size() && memcmp(a.data, b.data(), a.size) == 0;
 }
+} // namespace Internal
 struct Map
 {
   struct It
@@ -8155,13 +8171,12 @@ struct Map
       : map(map)
     {
     }
-    It(const It& other)
+    It(const It &other)
       : map(other.map)
       , index(other.index)
       , next_meta(other.next_meta)
       , next_complex(other.next_complex)
     {
-
     }
     inline const Token &operator*()
     {
@@ -8179,8 +8194,8 @@ struct Map
       {
         index += map.meta[next_meta].size;
         next_meta += map.meta[next_meta].skip;
-        next_complex =
-          next_meta < uint32_t(map.meta.size()) ? uint32_t(map.meta[next_meta].position) : uint32_t(map.tokens.data.size());
+        next_complex = next_meta < uint32_t(map.meta.size()) ? uint32_t(map.meta[next_meta].position)
+                                                             : uint32_t(map.tokens.data.size());
       }
       else
       {
@@ -8215,7 +8230,8 @@ struct Map
     It b(*this);
     b.index = 1;
     b.next_meta = 1;
-    b.next_complex = b.next_meta < uint32_t(meta.size()) ? uint32_t(meta[b.next_meta].position) : uint32_t(tokens.data.size());
+    b.next_complex =
+      b.next_meta < uint32_t(meta.size()) ? uint32_t(meta[b.next_meta].position) : uint32_t(tokens.data.size());
     return b;
   }
 
@@ -8270,7 +8286,7 @@ struct Map
   template <typename T>
   T castTo(JS::ParseContext &parseContext) const
   {
-    T t;
+    T t = {};
     castToType<T>(parseContext, t);
     return t;
   }
@@ -8278,13 +8294,13 @@ struct Map
   template <typename T>
   T castTo(const std::string &name, JS::ParseContext &parseContext) const
   {
-    T t;
+    T t = {};
     castToType<T>(name, parseContext, t);
     return t;
   }
 
-  template<typename T>
-  JS::Error setValue(JS::ParseContext &parseContext, const T& value)
+  template <typename T>
+  JS::Error setValue(JS::ParseContext &parseContext, const T &value)
   {
     static_assert(sizeof(JS::Internal::HasJsonStructBase<T>::template test_in_base<T>(nullptr)) ==
                     sizeof(typename JS::Internal::HasJsonStructBase<T>::yes),
@@ -8303,9 +8319,10 @@ struct Map
     return parseContext.error;
   }
 
-  template<typename T>
-  JS::Error setValue(const std::string& name, JS::ParseContext &parseContext, const T& value)
+  template <typename T>
+  JS::Error setValue(const std::string &name, JS::ParseContext &parseContext, const T &value)
   {
+    (void)parseContext;
     if (tokens.data.empty())
     {
       tokens.data.reserve(10);
@@ -8337,7 +8354,7 @@ struct Map
         int to_adjust_index = it.next_meta;
         auto start_meta = meta.begin() + it.next_meta;
         meta.erase(start_meta, start_meta + theMeta.skip);
-        for (int i = to_adjust_index; i < meta.size(); i++)
+        for (int i = to_adjust_index; i < int(meta.size()); i++)
         {
           meta[i].position -= theMeta.size;
         }
@@ -8350,11 +8367,11 @@ struct Map
       }
       {
         int index_to_remove = -1;
-        for (int i = 0; i < json_data.size(); i++)
+        for (int i = 0; i < int(json_data.size()); i++)
         {
-          if (json_data[i].first == it.index)
+          if (uint32_t(json_data[i].first) == it.index)
             index_to_remove = i;
-          else if (json_data[i].first > it.index)
+          else if (uint32_t(json_data[i].first) > it.index)
             json_data[i].first -= tokens_removed;
         }
         if (index_to_remove >= 0)
@@ -8387,8 +8404,8 @@ struct Map
     JS::ParseContext pc(out.c_str(), out.size(), new_tokens);
     auto new_meta = metaForTokens(new_tokens);
 
-    json_data.emplace_back(tokens.data.size() - 1, std::move(out));
-    int old_tokens_size = tokens.data.size();
+    json_data.emplace_back(int(tokens.data.size() - 1), std::move(out));
+    int old_tokens_size = int(tokens.data.size());
     tokens.data.insert(tokens.data.end() - 1, new_tokens.data.begin() + 1, new_tokens.data.end() - 1);
     meta[0].children++;
     if (new_meta[0].complex_children)
@@ -8396,11 +8413,12 @@ struct Map
       meta[0].complex_children++;
       meta[0].size += new_meta[1].size;
       meta[0].skip += new_meta[1].skip;
-      int old_meta_size = meta.size();
+      int old_meta_size = int(meta.size());
       meta.insert(meta.end(), new_meta.begin() + 1, new_meta.end());
-      for (int new_meta_i = old_meta_size; new_meta_i < meta.size(); new_meta_i++)
+      for (int new_meta_i = old_meta_size; new_meta_i < int(meta.size()); new_meta_i++)
       {
-        meta[new_meta_i].position += old_tokens_size - 1 - 1; //position contains an extra and old_tokens_size has another extra
+        meta[new_meta_i].position +=
+          old_tokens_size - 1 - 1; // position contains an extra and old_tokens_size has another extra
       }
     }
     else
@@ -8428,21 +8446,21 @@ struct TypeHandler<Map>
 
   static inline void from(const Map &from_type, Token &, Serializer &serializer)
   {
-    for (auto& token : from_type.tokens.data)
+    for (auto &token : from_type.tokens.data)
     {
       serializer.write(token);
     }
   }
 };
 
-template<typename T, size_t COUNT>
+template <typename T, size_t COUNT>
 struct ArrayVariableContent
 {
   T data[COUNT];
   size_t size = 0;
 };
 
-template<typename T, size_t COUNT>
+template <typename T, size_t COUNT>
 struct TypeHandler<ArrayVariableContent<T, COUNT>>
 {
   static inline Error to(ArrayVariableContent<T, COUNT> &to_type, ParseContext &context)
@@ -8546,9 +8564,11 @@ struct TypeHandlerSet
 #include <map>
 namespace JS
 {
-template<typename Key, typename Value>
-struct TypeHandler<std::map<Key, Value>> : TypeHandlerMap<Key, Value, std::map<Key, Value>> {};
-}
+template <typename Key, typename Value>
+struct TypeHandler<std::map<Key, Value>> : TypeHandlerMap<Key, Value, std::map<Key, Value>>
+{
+};
+} // namespace JS
 #endif
 
 #if defined(JS_STL_SET) && !defined(JS_STL_SET_INCLUDE)
@@ -8556,9 +8576,11 @@ struct TypeHandler<std::map<Key, Value>> : TypeHandlerMap<Key, Value, std::map<K
 #include <set>
 namespace JS
 {
-template<typename Key>
-struct TypeHandler<std::set<Key>> : TypeHandlerSet<Key, std::set<Key>> {};
-}
+template <typename Key>
+struct TypeHandler<std::set<Key>> : TypeHandlerSet<Key, std::set<Key>>
+{
+};
+} // namespace JS
 #endif
 
 #if defined(JS_STL_UNORDERED_SET) && !defined(JS_STL_UNORDERED_SET_INCLUDE)
@@ -8566,7 +8588,36 @@ struct TypeHandler<std::set<Key>> : TypeHandlerSet<Key, std::set<Key>> {};
 #include <unordered_set>
 namespace JS
 {
-template<typename Key>
-struct TypeHandler<std::unordered_set<Key>> : TypeHandlerSet<Key, std::unordered_set<Key>> {};
-}
+template <typename Key>
+struct TypeHandler<std::unordered_set<Key>> : TypeHandlerSet<Key, std::unordered_set<Key>>
+{
+};
+} // namespace JS
+#endif
+
+#if defined(JS_INT_128) && !defined(JS_INT_128_INCLUDE)
+#define JS_INT_128_INCLUDE 1
+// Compiler support check
+#if defined(__SIZEOF_INT128__) && !defined(JS_NO_INT128_TYPEDEF)
+namespace JS
+{
+__extension__ using js_int128_t = __int128;
+__extension__ using js_uint128_t = unsigned __int128;
+} // namespace JS
+#endif
+
+namespace JS
+{
+/// \private
+template <>
+struct TypeHandler<js_int128_t> : TypeHandlerIntType<js_int128_t>
+{
+};
+
+/// \private
+template <>
+struct TypeHandler<js_uint128_t> : TypeHandlerIntType<js_uint128_t>
+{
+};
+} // namespace JS
 #endif
